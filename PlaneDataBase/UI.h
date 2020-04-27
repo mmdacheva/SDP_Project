@@ -1,5 +1,6 @@
 #pragma once
 #include "PlanesDataBase.h"
+#include <stack>
 
 //creates record for a plane with this data
 static void create(PlanesDataBase& db, long long id, std::string plane,
@@ -32,9 +33,24 @@ static void search(PlanesDataBase& db, unsigned int id) {
 	db.search(id);
 }
 
+static void printCommands() {
+	std::cout << "Please input any of the following commands:" << std::endl;
+	std::cout << "- create(for adding a new plane in the database) followed by id, name of the plane, type of the plane and number of flights" << std::endl;
+	std::cout << "- delete(for deleting a plane from the database) followed by the id of the plane you wish to delete" << std::endl;
+	std::cout << "- show(for printing limit number of records starting from offset) followed by offset and limit" << std::endl;
+	std::cout << "- update(for editing a record in the database) followed by the id of the plane you wish to edit, then the attribute you wish to change and then last but not least - the new value for the attribute" << std::endl;
+	std::cout << "The attribute can be any of the following: Id / Plane / Type / Flights" << std::endl;
+	std::cout << "- optimize(for making the search for a certain id much faster)" << std::endl;
+	std::cout << "- search(for printing the plane with a certain id) followed by the id of the desired plane" << std::endl;
+	std::cout << "- undo(for undoing the last change you made to the database)" << std::endl;
+	std::cout << "- exit(for exiting the program)" << std::endl;
+}
+
 static void getInput() {
 	PlanesDataBase db("Planes.txt");
 	std::string input;
+
+	printCommands();
 
 	while (true) {
 		std::cin >> input;
@@ -46,7 +62,7 @@ static void getInput() {
 			unsigned long long flights;
 
 			std::cin >> id >> plane >> type >> flights;
-			
+
 			create(db, id, plane, type, flights);
 		}
 
@@ -82,14 +98,18 @@ static void getInput() {
 			search(db, id);
 		}
 
+		else if (input == "undo") {
+			db.undoCommand();
+		}
+
 		else if (input == "exit") {
 			db.writeToFile();
 			break;
 		}
 
-		else
+		else {
 			std::cout << "Invalid command" << std::endl;
-
-	}
-		
+			printCommands();
+		}
+	}		
 }
