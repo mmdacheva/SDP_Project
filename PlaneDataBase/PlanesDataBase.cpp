@@ -33,11 +33,13 @@ void PlanesDataBase::search(unsigned long long id) {
 	}
 
 	std::cout << planesData[index];
+
+	commands.push("search");
 }
 
 int PlanesDataBase::searchByID(unsigned long long id) const {
 	for (int i = 0; i < planesData.size(); i++) {
-		if (planesData[i].getID() == id) return i;
+		if (planesData[i].getID() == id || planesData[i].getID() == (-1)*id) return i;
 	}
 
 	return -1;
@@ -50,8 +52,13 @@ void PlanesDataBase::changeAttribute(unsigned long long id, const std::string& a
 		return;
 	}
 	
-	if (attribute == "Id")
+	planeStack.push(planesData[index]);
+
+	if (attribute == "Id") {
+		affectedID.push(stoi(update));
+		commands.push("Id");
 		planesData[index].setID(stoi(update));
+	}
 	else if (attribute == "Plane")
 		planesData[index].setPlane(update);
 	else if (attribute == "Type")
@@ -59,6 +66,7 @@ void PlanesDataBase::changeAttribute(unsigned long long id, const std::string& a
 	else if (attribute == "Flights")
 		planesData[index].setFlights(stoi(update));
 
+	commands.push("update");
 	removeOptimized();
 }
 
@@ -68,9 +76,11 @@ void PlanesDataBase::optimize() {
 	for (int i = 0; i < planesData.size(); i++) {
 		planesDataOptimized.insert(planesData[i]);
 	}
+
+	commands.push("optimize");
 }
 
-void PlanesDataBase::show(unsigned int offset, unsigned int limit) const {
+void PlanesDataBase::show(unsigned int offset, unsigned int limit) {
 	if (offset < 0 || offset >= planesData.size()) {
 		std::cout << "Invalid argument offset" << std::endl;
 		return;
@@ -84,6 +94,8 @@ void PlanesDataBase::show(unsigned int offset, unsigned int limit) const {
 	for (int i = offset; i < offset + limit; i++) {
 		std::cout << planesData[i];
 	}
+
+	commands.push("show");
 }
 
 void PlanesDataBase::addPlane(long long id, const std::string& plane, const std::string& type, long long flights) {
@@ -96,10 +108,16 @@ void PlanesDataBase::addPlane(long long id, const std::string& plane, const std:
 	planesData.push_back(pl);
 
 	if(isOptimized) removeOptimized();
+
+	commands.push("create");
+	affectedID.push(id);
 }
 
 void PlanesDataBase::deletePlane(unsigned long long id) {
 	unsigned long long index = searchByID(id);
+
+	commands.push("delete");
+	planeStack.push(planesData[index]);
 
 	if (index == -1) {
 		std::cout << "Plane with this ID doesn't exist" << std::endl;
@@ -108,6 +126,44 @@ void PlanesDataBase::deletePlane(unsigned long long id) {
 
 	planesData.erase(planesData.begin() + index);
 	removeOptimized();
+
+}
+
+void PlanesDataBase::undoCommand() {
+	if (commands.empty()) {
+		std::cout << "There is nothing to undo!" << std::endl;
+		return;
+	}
+
+	else if (commands.top() == "create") {
+		commands.pop();
+		deletePlane(affectedID.top());
+		affectedID.pop();
+	}
+
+	else if (commands.top() == "update") {
+		commands.pop();
+		Plane pl = planeStack.top();
+		std::string attribute = commands.top();
+		if (attribute != "Id") {
+			int index = searchByID(pl.getID());
+			planesData[index] = pl;
+		}
+
+		else {
+			int newIndex = searchByID(affectedID.top());
+			planesData[newIndex] = pl;
+			affectedID.pop();
+		}
+	}
+
+	else if (commands.top() == "delete") {
+		commands.pop();
+		planesData.push_back(planeStack.top());
+		planeStack.pop();
+	}
+
+	else commands.pop();
 }
 
 void PlanesDataBase::readFromFile() {
